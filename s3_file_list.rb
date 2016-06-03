@@ -20,7 +20,7 @@ class S3FileList < FileList
     while more_remaining
       objects = @s3.list_objects bucket: @bucket, prefix: @prefix, marker: marker
       objects.contents.each {|o| @files << "s3://#{@bucket}/#{o.key}" unless o.key.match /_\$folder\$$/}
-      marker = objects.contents.last.key
+      marker = objects.contents.last.key if objects.is_truncated
       more_remaining = objects.is_truncated
     end
     self
