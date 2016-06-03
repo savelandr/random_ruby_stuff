@@ -38,6 +38,21 @@ module ZookeeperUtils
     !!@zk.exists(path, false)
   end
 
+  def self.partitions(topic_name)
+    self.check_connection
+    partitions = []
+    stat = Java::OrgApacheZookeeperData::Stat.new
+    if self.exists?("/brokers/topics/#{topic_name}/partitions")
+      ids = @zk.get_children("/brokers/topics/#{topic_name}/partitions", false)
+      ids.each do |partition|
+        data = @zk.get_data("/brokers/topics/#{topic_name}/partitions/#{partition}/state", false, stat).to_s
+        data = MultiJson.load data
+        partitions << {partition: partition, leader: data["leader"], isr: data["isr"]}
+      end #each
+    end #if
+    return partitions
+  end
+
   def self.brokers
     self.check_connection
     brokers = []
@@ -47,7 +62,7 @@ module ZookeeperUtils
       ids.each do |broker_id|
         data = @zk.get_data("/brokers/ids/#{broker_id}", false, stat).to_s
         data = MultiJson.load data
-        brokers << {host: data['host'], port: data['port']}
+        brokers << {host: data['host'], port: data['port'], id: broker_id}
       end #each
     end #if
     return brokers
