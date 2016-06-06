@@ -36,8 +36,8 @@ begin
   request = Java::KafkaApi::FetchRequestBuilder.new.client_id("Client_#{$topic}_#{rand(1000)}").add_fetch($topic, $partition, $offset, 100000).build
   response = consumer.fetch(request)
   possible_message = response.message_set($topic, $partition).to_list.find {|m| m.offset == $offset}
-  raise RuntimeError, "Message with offset #{$offset} not found on broker" if possible_message.is_empty?
-  message = possible_message.get.message
+  raise_not_found = proc {raise RuntimeError, "Message with offset #{$offset} not found on broker"}
+  message = possible_message.get_or_else(raise_not_found).message
   size = message.payload_size
   bytes = Java::byte[size].new
   message.payload.get(bytes)
